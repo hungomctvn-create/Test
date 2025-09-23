@@ -1,0 +1,51 @@
+Cập nhật hệ thống (bắt buộc để tránh lỗi phụ thuộc):
+textsudo apt update
+
+sudo apt upgrade -y
+sudo apt install python3-pip libatlas-base-dev libjasper-dev libqtgui4 libqt4-test -y
+
+
+Cài NumPy (ưu tiên APT để tương thích hệ thống):
+textsudo apt install python3-numpy -y
+
+Kiểm tra: python3 -c "import numpy; print(numpy.__version__)" → Nên ra 1.19.5.
+
+Nếu cần phiên bản pip (trong virtualenv để tránh xung đột):
+textpip3 install numpy==1.21.6
+
+
+Cài OpenCV:
+
+Khuyến nghị: Dùng APT (đơn giản, đầy đủ, không cần build):
+textsudo apt install python3-opencv -y
+
+Điều này cài OpenCV 4.5.1 + NumPy nếu chưa có. Bao gồm contrib modules (như face detection).
+
+
+Hoặc dùng pip (nếu cần phiên bản cụ thể, nhanh hơn nhưng có thể thiếu một số tính năng hệ thống):
+textpip3 install opencv-python==4.5.3.56
+
+Nếu lỗi build wheel (do thiếu swap hoặc RAM), tăng swap tạm thời: sudo dphys-swapfile swapoff && sudo nano /etc/dphys-swapfile (thay CONF_SWAPSIZE=100 thành 2048), rồi sudo dphys-swapfile setup && sudo dphys-swapfile swapon. Sau cài, reset swap về 100.
+
+
+
+
+
+Kiểm tra cài đặt:
+textpython3 -c "import cv2, numpy; print('OpenCV:', cv2.__version__); print('NumPy:', numpy.__version__)"
+
+Kết quả mong đợi: OpenCV 4.5.x và NumPy 1.19.x/1.21.x.
+
+
+
+Xử lý lỗi phổ biến:
+
+ImportError: numpy.core.multiarray failed: Gỡ và cài lại NumPy: pip3 uninstall numpy && pip3 install numpy==1.19.5. Đảm bảo dùng cùng môi trường Python (không mix system/pip).
+No wheel for i686/ARM: Luôn dùng --extra-index-url https://www.piwheels.org/simple với pip: pip3 install --extra-index-url https://www.piwheels.org/simple opencv-python==4.5.3.56.
+Lỗi libcblas.so: Cài sudo apt install libatlas-base-dev libopenblas-dev -y.
+Xung đột với Picamera2: Giữ NumPy 1.19.5; nếu dùng venv: python3 -m venv myenv && source myenv/bin/activate && pip install opencv-python==4.5.3.56.
+Nếu build từ source (chỉ nếu cần phiên bản mới hơn): Tải script từ Q-engineering (OpenCV 4.8+), nhưng mất 4-6 giờ trên Pi 4.
+
+
+
+Nếu vẫn lỗi, cung cấp output của uname -a và python3 --version để hỗ trợ chi tiết hơn. Nguồn: Dựa trên tài liệu PyPI, PiWheels, và diễn đàn Raspberry Pi (2021-2023).3sFast
