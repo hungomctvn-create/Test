@@ -122,7 +122,7 @@ class QueueSystem:
     
     def detect_person(self):
         """Phát tiếng chào khi phát hiện người (giả lập)"""
-        greeting = "Xin chào! Tôi là rô bốt Lâm Vĩnh Huy ! Tôi có thể hỗ trợ gì cho bạn"
+        greeting = "Xin chào! Tôi là rô bốt A I ! Tôi có thể hỗ trợ gì cho bạn"
         self.speak_text(greeting)
 
 if __name__ == "__main__":
