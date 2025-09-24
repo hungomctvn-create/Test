@@ -18,3 +18,4 @@ AttributeError: module 'mediapipe' has no attribute 'solutions'
 (program exited with code: 1)
 Press return to continue
 
+python -c "import mediapipe as mp; print(mp.__version__)"
