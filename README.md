@@ -46,23 +46,28 @@ textpython -c "import mediapipe as mp; print(mp.__version__)"
 Phương pháp 2: Build từ nguồn
 
 Vào thư mục MediaPipe:
-textcd /home/robothcc/mediapipe
+text
+cd /home/robothcc/mediapipe
 
 Checkout phiên bản:
-textgit checkout v0.10.21
+text
+git checkout v0.10.21
 
 Cài dependencies:
-textsudo apt update
+text
+sudo apt update
 sudo apt install -y python3-dev python3-pip build-essential cmake pkg-config libprotobuf-dev protobuf-compiler libgl1-mesa-dev libgles2-mesa-dev g++
 
 Build wheel:
-textpython setup.py bdist_wheel --plat-name linux_x86_64
+text
+python setup.py bdist_wheel --plat-name linux_x86_64
 
 Nếu lỗi gl_context.cc, chỉnh sửa setup.py để bỏ qua GPU (xem Bước 4).
 
 
 Cài wheel:
-textpip install dist/mediapipe-*.whl
+text
+pip install dist/mediapipe-*.whl
 
 Kiểm tra:
 textpython -c "import mediapipe as mp; print(mp.__version__)"
@@ -72,7 +77,8 @@ Bước 4: Khắc phục lỗi trước (nếu cần)
 Dựa trên lỗi trước (AttributeError: module 'mediapipe' has no attribute 'solutions'), đảm bảo build đầy đủ:
 
 Nếu build lỗi, mở setup.py:
-textnano /home/robothcc/mediapipe/setup.py
+text
+nano /home/robothcc/mediapipe/setup.py
 
 Thêm hoặc sửa đường dẫn nguồn, đảm bảo solutions được bao gồm. Nếu không rõ, cung cấp nội dung file để tôi hỗ trợ.
 Chạy lại build.
@@ -161,5 +167,23 @@ Lưu ý
 
 Đường dẫn chính là /home/robothcc/mediapipe.
 Báo lại kết quả của ls -la /home/robothcc/mediapipe/ hoặc python -c "import mediapipe as mp; print(mp.__version__)" để tôi hỗ trợ thêm!
+
+
+
+  self._finalize_license_expression()
+running bdist_wheel
+running build
+running build_py
+running gen_protos
+generating proto file: build/lib.linux-x86_64-cpython-39/mediapipe/tasks/cc/genai/inference/proto/transformer_params_pb2.py
+Invoking: /usr/bin/protoc -I. --python_out=/home/robothcc/mediapipe/build/lib.linux-x86_64-cpython-39 mediapipe/tasks/cc/genai/inference/proto/transformer_params.proto
+mediapipe/tasks/cc/genai/inference/proto/transformer_params.proto: This file contains proto3 optional fields, but --experimental_allow_proto3_optional was not set.
+Command '['/usr/bin/protoc', '-I.', '--python_out=/home/robothcc/mediapipe/build/lib.linux-x86_64-cpython-39', 'mediapipe/tasks/cc/genai/inference/proto/transformer_params.proto']' returned non-zero exit status 1.
+robothcc@raspberry:~/mediapipe $ pip install dist/mediapipe-*.whl
+Defaulting to user installation because normal site-packages is not writeable
+WARNING: Requirement 'dist/mediapipe-*.whl' looks like a filename, but the file does not exist
+ERROR: Invalid wheel filename (wrong number of parts): 'mediapipe-*'
+robothcc@raspberry:~/mediapipe $ 
+
 
 Chạy các lệnh và cung cấp kết quả!
