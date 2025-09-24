@@ -1,0 +1,188 @@
+Phân tích và xử lý tình huống tiếp theo sau lệnh python setup.py bdist_wheel --plat-name linux_x86_64
+Dựa trên hình ảnh bạn cung cấp, bạn đã chạy lệnh:
+textpython setup.py bdist_wheel --plat-name linux_x86_64
+và nhận được đầu ra:
+textrunning bdist_wheel
+running build
+running build_py
+creating build
+creating build/lib
+creating build/lib/mediapipe
+copying mediapipe/__init__.py -> build/lib/mediapipe
+...
+running build_ext
+building 'mediapipe._framework_bindings' extension
+creating build/temp.linux-x86_64-3.9
+creating build/temp.linux-x86_64-3.9/mediapipe
+creating build/temp.linux-x86_64-3.9/mediapipe/gpu
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O2 -Wall -g -fstack-protector-strong -Wformat -Werror=format-security -g -fwrapv -O2 -g -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 -fPIC -I/usr/include/python3.9 -I./ -c mediapipe/gpu/gl_context.cc -o build/temp.linux-x86_64-3.9/mediapipe/gpu/gl_context.o -std=c++17
+cc1plus: fatal error: mediapipe/gpu/gl_context.cc: No such file or directory
+compilation terminated.
+error: command 'gcc' failed with exit status 1
+Thời gian hiện tại là 09:57 AM +07, Thứ Tư, 24/09/2025 (theo thông tin hệ thống), và bạn đang làm việc trên Raspberry Pi ảo (x86_64, Debian 11 Bullseye). Kết quả này cho thấy lệnh build wheel đã thất bại do lỗi biên dịch.
+Phân tích
+
+Thành công ban đầu: Quá trình bdist_wheel, build, và build_py đã chạy tốt, tạo ra các thư mục build/lib/mediapipe.
+Lỗi biên dịch: Lỗi cc1plus: fatal error: mediapipe/gpu/gl_context.cc: No such file or directory chỉ ra rằng file nguồn gl_context.cc không được tìm thấy, dẫn đến lỗi command 'gcc' failed with exit status 1.
+Nguyên nhân tiềm ẩn:
+
+Thiếu file nguồn hoặc dependency liên quan đến GPU (MediaPipe yêu cầu OpenGL trong một số module, như mediapipe/gpu).
+Cấu hình build không đầy đủ hoặc thiếu thư viện OpenGL trên hệ thống ảo.
+Debian 11 Bullseye có thể không có môi trường OpenGL đầy đủ trong VirtualBox.
+
+
+
+Giải pháp chi tiết
+Bước 1: Kiểm tra file nguồn
+Xác nhận file gl_context.cc có tồn tại:
+textls mediapipe/gpu/
+
+Nếu không thấy gl_context.cc: Có thể phiên bản v0.10.21 không bao gồm file này do cấu hình build hoặc lỗi clone. Kiểm tra lại repository:
+textgit status
+
+Nếu có lỗi clone, pull lại:
+textgit pull origin v0.10.21
+
+
+
+
+Bước 2: Cài đặt dependencies OpenGL
+MediaPipe yêu cầu OpenGL để build module GPU. Cài các gói cần thiết:
+textsudo apt update
+sudo apt install -y libgl1-mesa-dev libgles2-mesa-dev
+
+Giải thích: libgl1-mesa-dev cung cấp thư viện OpenGL, libgles2-mesa-dev hỗ trợ OpenGL ES.
+
+Bước 3: Kiểm tra môi trường VirtualBox
+Trong VirtualBox, OpenGL thường yêu cầu hỗ trợ 3D acceleration:
+
+Dừng máy ảo.
+Vào Settings > Display > Bật Enable 3D Acceleration.
+Khởi động lại máy ảo và kiểm tra:
+textglxinfo | grep "OpenGL version"
+
+Nếu không cài glxinfo, cài: sudo apt install mesa-utils.
+Nếu không thấy phiên bản OpenGL, 3D acceleration chưa hoạt động (cần GPU host hỗ trợ).
+
+
+
+Bước 4: Thử build lại
+Chạy lại lệnh build:
+textpython setup.py bdist_wheel --plat-name linux_x86_64
+
+Nếu lỗi vẫn xảy ra: Có thể module GPU không cần thiết cho script của bạn. Sử dụng tùy chọn build không bao gồm GPU:
+
+Chỉnh sửa setup.py hoặc thêm flag (xem MediaPipe Docs) để bỏ qua GPU, nhưng điều này phức tạp và không khuyến nghị trong môi trường ảo.
+Thay vào đó, build với CPU-only (xem Bước 5).
+
+
+
+Bước 5: Build với CPU-only (khuyến nghị trong môi trường ảo)
+Nếu GPU không cần thiết (script của bạn chỉ dùng face detection, không yêu cầu GPU), build phiên bản CPU-only:
+
+Tạo file cấu hình build (nếu cần):
+
+Sao chép BUILD từ repository gốc hoặc tạo file BUILD.bazel tùy chỉnh (xem tài liệu MediaPipe).
+
+
+Sử dụng Bazel để build (thay vì setup.py):
+
+Cài Bazel:
+textsudo apt install -y curl gnupg
+curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel.gpg
+sudo mv bazel.gpg /usr/share/keyrings/bazel-archive-keyring.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list
+sudo apt update && sudo apt install -y bazel
+
+Build CPU-only:
+textbazel build -c opt --define MEDIAPIPE_DISABLE_GPU=1 mediapipe/examples/desktop:hello_world
+
+Tuy nhiên, để tạo wheel, bạn cần chỉnh sửa build cho Python (xem MediaPipe Python Build).
+
+
+Dùng cách đơn giản hơn: Chỉnh sửa setup.py để bỏ qua module GPU (khuyến nghị):
+
+Mở setup.py:
+textnano setup.py
+
+Tìm phần extensions hoặc sources, loại bỏ các file liên quan đến gpu (như gl_context.cc). Điều này yêu cầu kỹ năng lập trình; nếu không chắc, cung cấp nội dung setup.py để tôi hỗ trợ chỉnh sửa.
+
+
+
+Bước 6: Cài đặt wheel và chạy script
+
+Sau khi build thành công (nếu có wheel trong dist/):
+textpip install dist/mediapipe-*.whl
+
+Kiểm tra:
+textpython -c "import mediapipe as mp; print(mp.__version__)"
+
+Chạy script:
+textpython greeting_robot_final.py
+
+
+Script tham khảo
+textimport cv2
+import mediapipe as mp
+from gtts import gTTS
+import pygame
+import time
+import os
+
+mp_face_detection = mp.solutions.face_detection
+mp_drawing = mp.solutions.drawing_utils
+face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)
+
+cap = cv2.VideoCapture(1)
+if not cap.isOpened():
+    print("Lỗi: Không thể mở webcam. Kiểm tra USB.")
+    print("Kiểm tra: ls /dev/video*")
+    exit()
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+last_greet_time = 0
+greet_interval = 5
+
+def speak_greeting():
+    try:
+        text = "Xin chào! Rất vui được gặp bạn!"
+        tts = gTTS(text=text, lang='vi')
+        tts.save("greeting.mp3")
+        pygame.mixer.init()
+        pygame.mixer.music.load("greeting.mp3")
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            time.sleep(0.1)
+        pygame.mixer.quit()
+        os.remove("greeting.mp3")
+    except Exception as e:
+        print(f"Lỗi âm thanh: {e}")
+
+try:
+    print("Chương trình chạy. Đặt khuôn mặt trước webcam...")
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Lỗi đọc webcam")
+            break
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = face_detection.process(rgb_frame)
+        if results.detections:
+            for detection in results.detections:
+                mp_drawing.draw_detection(frame, detection)
+                print("Phát hiện khuôn mặt! Đang chào...")
+                current_time = time.time()
+                if (current_time - last_greet_time) > greet_interval:
+                    speak_greeting()
+                    last_greet_time = current_time
+        cv2.imshow('Webcam - Greeting Robot', frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+except KeyboardInterrupt:
+    print("Dừng bởi Ctrl+C")
+
+cap.release()
+cv2.destroyAllWindows()
+print("Chương trình kết thúc.")
