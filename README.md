@@ -9,7 +9,8 @@ Nếu không có log, chạy lệnh trên và báo lại output.
 
 Bước 2: Sửa file setup.py tại dòng 69
 Dựa trên giả định, tôi sẽ kiểm tra và sửa đoạn mã quanh dòng 69. Mở file:
-textnano /home/robothcc/mediapipe/setup.py
+text
+nano /home/robothcc/mediapipe/setup.py
 
 Tìm dòng 69: Dùng phím mũi tên hoặc Ctrl+_ (gõ 69) trong nano để đến dòng 69.
 Kiểm tra cú pháp:
@@ -43,9 +44,11 @@ Nếu thiếu dấu ngoặc hoặc có lỗi, sửa lại cho đúng cú pháp.
 
 Bước 3: Xóa build cũ và thử lại
 Xóa các file build cũ để tránh xung đột:
-textrm -rf build dist
+text
+rm -rf build dist
 Chạy lại build:
-textpython setup.py bdist_wheel --plat-name linux_x86_64
+text
+python setup.py bdist_wheel --plat-name linux_x86_64
 Bước 4: Cài đặt và kiểm tra
 Nếu build thành công:
 textpip install dist/mediapipe-*.whl --user
@@ -56,3 +59,10 @@ textpython /home/robothcc/greeting_robot_final_1.1.py
 Khắc phục sự cố
 
 Lỗi cú pháp khác: Cung cấp nội d
+
+robothcc@raspberry:~ $ python setup.py bdist_wheel --plat-name linux_x86_64
+  File "/home/robothcc/setup.py", line 69
+    if ...(truncated 16565 characters)...s for mobile, edge, cloud and the web.',
+                     ^
+SyntaxError: invalid syntax
+
