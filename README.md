@@ -19,3 +19,8 @@ AttributeError: module 'mediapipe' has no attribute 'solutions'
 Press return to continue
 
 python -c "import mediapipe as mp; print(mp.__version__)"
+
+python -c "import mediapipe as mp; print(mp.__version__)"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+AttributeError: module 'mediapipe' has no attribute '__version__'
