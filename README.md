@@ -1,3 +1,36 @@
-echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee -a /etc/apt/sources.list.d/bazel.list
-curl -fsSL https://bazel.build/bazel-release.pub.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/bazel.gpg
-sudo apt update
+Bước 3: Cài đặt MediaPipe mới qua pip
+
+Cài phụ thuộc cơ bản:
+
+Cài các thư viện cần thiết:
+text
+sudo apt install -y python3-dev python3-opencv libatlas-base-dev build-essential
+
+
+
+Cài MediaPipe:
+
+Chạy lệnh cài đặt phiên bản mới nhất:
+text
+python3 -m pip install mediapipe --user
+
+Nếu muốn cài phiên bản cụ thể (kiểm tra trên https://pypi.org/project/mediapipe/):
+text
+python3 -m pip install mediapipe==0.10.15 --user
+
+
+
+Cài phụ thuộc bổ sung:
+
+Đảm bảo OpenCV và NumPy:
+text
+python3 -m pip install opencv-python numpy --user
+
+
+
+Kiểm tra cài đặt:
+
+Chạy:
+textpython3 -c "import mediapipe; print(mediapipe.__version__)"
+
+Nếu hiển thị phiên bản (ví dụ: 0.10.15) mà không lỗi, cài đặt thành công.
