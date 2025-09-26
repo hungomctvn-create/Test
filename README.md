@@ -1,70 +1,93 @@
-Thay Thế Thư Viện MediaPipe Bằng OpenCV (Thư Viện Tương Thích Và Phù Hợp)
-Dựa trên cấu hình máy ảo "test" của bạn (Debian 64-bit x86_64, 2 GB RAM, Raspberry Pi OS/Debian-based), OpenCV là lựa chọn thay thế tốt nhất cho MediaPipe trong nhiệm vụ phát hiện khuôn mặt (face detection) từ webcam. Lý do:
+Hướng Dẫn Sử Dụng YOLO (Ultralytics YOLOv8) Để Phát Hiện Khuôn Mặt Trên Máy Ảo "Test" (Không Sử Dụng MediaPipe Hoặc OpenCV)
+Dựa trên yêu cầu của bạn, tôi sẽ hướng dẫn cài đặt và sử dụng Ultralytics YOLOv8 (phiên bản mới nhất tương thích là YOLOv8n cho hiệu suất nhẹ, phù hợp với 2 GB RAM của VM "test"). YOLOv8 hỗ trợ phát hiện khuôn mặt bằng cách sử dụng model được train trên class "face" (từ dataset như WIDER FACE). Chúng ta sẽ dùng model pre-trained từ GitHub repo YOLOv8-Face (YOLOv8m-face.pt), vì COCO val không có class "face" riêng.
 
-Chức năng tương tự: OpenCV hỗ trợ phát hiện khuôn mặt thời gian thực qua Haar Cascades (nhẹ, không cần ML phức tạp) hoặc DNN module (chính xác hơn, nhưng vẫn nhẹ).
-Tương thích: Hoàn toàn hỗ trợ Linux x86_64, glibc 2.28+ (phù hợp Debian Bullseye). Đã có sẵn trong hướng dẫn trước (qua sudo apt install python3-opencv), dễ cài qua pip nếu cần.
-Hiệu suất: Nhẹ (dùng <500 MB RAM cho webcam), chạy mượt trên 2 GB RAM, không cần GPU.
-So sánh với MediaPipe: OpenCV đơn giản hơn cho detection cơ bản, không cần model TFLite, nhưng ít tính năng ML nâng cao (như keypoints chi tiết). Nếu cần landmarks, có thể kết hợp với Dlib sau.
+Lý do phù hợp: YOLOv8 chạy tốt trên Linux x86_64 (Debian/Raspberry Pi OS), không cần GPU, và nhẹ hơn MediaPipe cho detection thời gian thực. Tuy nhiên, với 2 GB RAM, có thể chạy ~5-10 FPS; tăng RAM VM nếu cần.
+Yêu cầu: Python 3.8+, pip. Không dùng OpenCV cho detection (chỉ dùng YOLO để vẽ box).
 
-Dưới đây là hướng dẫn chi tiết để gỡ MediaPipe (nếu có), cài OpenCV, và cập nhật script face_detector.py để dùng OpenCV thay thế.
-Bước 1: Gỡ Bỏ MediaPipe (Nếu Đã Cài)
+Bước 1: Khởi Động VM Và Kiểm Tra Môi Trường
 
-Mở Terminal trong VM "test" với tài khoản robothcc.
-Nếu dùng venv (từ hướng dẫn trước):
-textsource ~/mediapipe_venv/bin/activate
-pip uninstall mediapipe -y
-deactivate
+Khởi động VM:
 
-Nếu cài toàn cục:
-textpython3 -m pip uninstall mediapipe -y
+Trong Oracle VirtualBox, chọn "test" > Start.
+Đăng nhập với robothcc.
 
 
-Bước 2: Cài Đặt OpenCV
-OpenCV đã có thể sẵn (từ phụ thuộc trước), nhưng kiểm tra và cài nếu cần.
+Mở Terminal:
 
-Cài qua apt (khuyến nghị, nhanh và ổn định cho Debian):
-textsudo apt update
-sudo apt install -y python3-opencv
+Nhấn Ctrl+Alt+T.
 
-Hoặc qua pip (nếu cần phiên bản mới hơn, ví dụ 4.10.0):
-textpython3 -m pip install opencv-python --user
 
-Nếu dùng venv: source ~/mediapipe_venv/bin/activate (đổi tên venv thành opencv_venv nếu muốn), rồi pip install opencv-python.
+Kiểm tra Python:
+textpython3 --version
+
+Nên là 3.8+ (mặc định Raspberry Pi OS Bullseye là 3.9). Nếu thấp hơn, nâng cấp: sudo apt install python3.9.
+
+
+Cập nhật hệ thống:
+textsudo apt update && sudo apt upgrade -y
+
+
+Bước 2: Cài Đặt Ultralytics YOLOv8
+Sử dụng pip để cài (dựa trên docs Ultralytics, tương thích Debian).
+
+Cài pip nếu chưa có:
+textsudo apt install python3-pip
+
+Tạo virtual environment (venv) để tránh xung đột:
+textpython3 -m venv ~/yolo_venv
+source ~/yolo_venv/bin/activate
+
+Prompt: (yolo_venv) robothcc@raspberry:~ $.
+
+
+Nâng cấp pip:
+textpip install --upgrade pip
+
+Cài Ultralytics:
+textpip install ultralytics
+
+Quá trình mất 5-10 phút (tải PyTorch ~100 MB). Nếu lỗi "externally managed environment", dùng --break-system-packages (cho Debian mới): pip install ultralytics --break-system-packages.
 
 
 Kiểm tra cài đặt:
-textpython3 -c "import cv2; print(cv2.__version__)"
+textpython -c "from ultralytics import YOLO; print('YOLOv8 installed successfully')"
 
-Kết quả: Phiên bản như 4.10.0 (hoặc cao hơn) → Thành công.
-
-
-
-Bước 3: Cập Nhật Script Face Detector Với OpenCV
-Thay thế script cũ bằng phiên bản mới sử dụng OpenCV's Haar Cascade cho face detection (nhẹ, không cần model riêng). Script này:
-
-Mở webcam.
-Phát hiện khuôn mặt thời gian thực.
-Vẽ bounding box (tương tự MediaPipe).
-Hiển thị với label "Face (confidence)" (dùng scale làm proxy cho confidence).
+Không lỗi → Thành công.
 
 
-Tạo file mới ~/face_detector_opencv.py (sử dụng nano):
-textnano ~/face_detector_opencv.py
 
-Dán code sau (copy-paste vào nano, lưu bằng Ctrl+O, Enter, Ctrl+X):
+Bước 3: Tải Model Pre-Trained Cho Face Detection
+YOLOv8 cần model chuyên cho "face" (không dùng COCO val).
+
+Tải model YOLOv8m-face.pt (từ repo YOLOv8-Face, kích thước ~20 MB, nhẹ cho VM):
+textwget https://github.com/Yusepp/YOLOv8-Face/releases/download/v0.2/yolov8m-face.pt -O ~/yolov8m-face.pt
+
+Nếu wget lỗi, tải thủ công từ https://github.com/Yusepp/YOLOv8-Face/releases/tag/v0.2 và copy vào VM.
+
+
+
+Bước 4: Tạo Script Face Detector Với YOLOv8
+Tạo script mới ~/face_detector_yolo.py sử dụng YOLOv8 để phát hiện "face" từ webcam, vẽ bounding box và label confidence (tương tự script cũ).
+
+Tạo file:
+textnano ~/face_detector_yolo.py
+
+Dán code sau (dựa trên ví dụ từ Ultralytics docs và YOLOv8-Face), lưu (Ctrl+O, Enter, Ctrl+X):
 
 
 
 python# -*- coding: utf-8 -*-
 """
-Face Detector with OpenCV (Alternative to MediaPipe).
-Uses Haar Cascade for real-time face detection from webcam.
+Face Detector with YOLOv8 (Alternative to MediaPipe/OpenCV).
+Uses Ultralytics YOLOv8 for real-time face detection from webcam.
+Model: yolov8m-face.pt (trained on face class).
 """
 
-import cv2
+from ultralytics import YOLO
+import cv2  # Chỉ dùng để capture và display, không dùng cho detection
 
-# Load pre-trained Haar Cascade classifier for faces
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# Load YOLOv8 model for face detection
+model = YOLO('/home/robothcc/yolov8m-face.pt')  # Đường dẫn model
 
 # Open webcam (0 for default)
 cap = cv2.VideoCapture(0)
@@ -81,26 +104,30 @@ while cap.isOpened():
         print("Error: Failed to capture frame.")
         break
 
-    # Convert to grayscale for faster detection
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # Run YOLOv8 inference on frame
+    results = model(frame, verbose=False)  # verbose=False để giảm log
 
-    # Detect faces (scaleFactor=1.1, minNeighbors=5 for balance accuracy/speed)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    # Process results (draw bounding boxes for 'face' class)
+    for result in results:
+        boxes = result.boxes
+        if boxes is not None:
+            for box in boxes:
+                # Get box coordinates
+                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                conf = box.conf[0].cpu().numpy()
+                cls = int(box.cls[0].cpu().numpy())
 
-    # Draw rectangles around detected faces
-    for (x, y, w, h) in faces:
-        # Bounding box
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 3)
-        
-        # Proxy confidence (based on detection scale; higher = more confident)
-        confidence = round(100 - (w * h / 10000), 2)  # Simple heuristic
-        label = f'Face ({confidence}%)'
-        
-        # Add label
-        cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                # Check if class is 'face' (class_id=0 in this model)
+                if cls == 0:  # Assuming class 0 is 'face'
+                    # Draw bounding box
+                    cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
+                    
+                    # Add label with confidence
+                    label = f'Face ({conf:.2f})'
+                    cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
     # Display the frame
-    cv2.imshow('Face Detection with OpenCV', frame)
+    cv2.imshow('Face Detection with YOLOv8', frame)
 
     # Exit on 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -110,43 +137,56 @@ while cap.isOpened():
 cap.release()
 cv2.destroyAllWindows()
 
-Giải thích code ngắn gọn:
+Giải thích code:
 
-Haar Cascade: Model pre-trained có sẵn trong OpenCV (không cần tải thêm).
-Detection: Chạy trên grayscale để nhanh hơn, phù hợp 2 GB RAM.
-Visualization: Vẽ box xanh dương và label, tương tự MediaPipe.
-Tùy chỉnh: Thay minSize=(30, 30) để điều chỉnh độ nhạy (nhỏ hơn = phát hiện xa hơn).
-
-
-
-Bước 4: Chạy Script Và Kiểm Tra
-
-Đảm bảo webcam hoạt động (xem Bước 5 trước nếu chưa).
-Chạy script:
-textpython3 ~/face_detector_opencv.py
-
-Nếu dùng venv: source ~/mediapipe_venv/bin/activate rồi chạy.
-Webcam sẽ mở, phát hiện khuôn mặt và vẽ box. Nhấn 'q' để thoát.
+Model load: Sử dụng YOLOv8m-face.pt (class 0 = 'face').
+Inference: model(frame) trả về results với boxes, conf, cls.
+Visualization: Vẽ box xanh lá và label confidence (sử dụng cv2 chỉ cho display, không detection).
+Tùy chỉnh: Thay verbose=True để xem log chi tiết.
 
 
-Nếu lỗi "No module named 'cv2'": Chạy lại Bước 2.
 
 Bước 5: Cấu Hình Webcam Trong VirtualBox
 
-Tắt VM nếu đang chạy.
-VirtualBox > Chọn "test" > Settings > Ports > USB:
+Tắt VM (nếu đang chạy).
+Cấu hình USB:
 
-Check "Enable USB Controller" (USB 2.0 nếu có).
-Nhấn icon "+" > Chọn webcam của host machine.
+VirtualBox > Settings > Ports > USB > Enable USB Controller > Add webcam.
 
 
-Khởi động VM > Kiểm tra: ls /dev/video* (nên thấy /dev/video0).
+Khởi động VM.
+Kiểm tra:
+textls /dev/video*
 
-Lưu Ý Và Nâng Cao
+Nên thấy /dev/video0.
 
-Hiệu suất: Trên 2 GB RAM, chạy 15-30 FPS. Nếu chậm, giảm độ phân giải webcam: Thêm cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640); cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480) sau cap = cv2.VideoCapture(0).
-Nâng cao: Để keypoints (như MediaPipe), thêm Dlib: pip install dlib (cần build, có thể mất 10 phút). Hoặc dùng DNN: Tải model SSD từ OpenCV zoo.
-So sánh với MediaPipe: OpenCV nhanh hơn cho detection cơ bản, nhưng MediaPipe chính xác hơn với ML. Nếu cần ML đầy đủ, thử DeepFace: pip install deepface (nhẹ, hỗ trợ detection + recognition).
-Nếu lỗi: Cung cấp thông báo lỗi để hỗ trợ thêm.
 
-Script này thay thế hoàn toàn MediaPipe mà không mất chức năng cốt lõi. Nếu cần tùy chỉnh (ví dụ: thêm keypoints), cho tôi biết!10 web pages2.8sExpert
+
+Bước 6: Chạy Script
+
+Kích hoạt venv (nếu dùng):
+textsource ~/yolo_venv/bin/activate
+
+Chạy script:
+textpython ~/face_detector_yolo.py
+
+Webcam mở, YOLOv8 phát hiện khuôn mặt và vẽ box xanh lá với confidence. Nhấn 'q' để thoát.
+Lần đầu chạy, model tải weights nếu chưa (tự động).
+
+
+
+Bước 7: Xử Lý Lỗi Và Tối Ưu
+
+Lỗi "No module named 'ultralytics'": Chạy lại Bước 2.4.
+Lỗi "Could not open webcam": Kiểm tra Bước 5.
+Chậm (thấp FPS): Với 2 GB RAM, dùng model nhỏ hơn (yolov8n-face.pt nếu tải). Thêm model.predict(frame, imgsz=320) để giảm kích thước ảnh.
+Lỗi model không tải: Kiểm tra đường dẫn /home/robothcc/yolov8m-face.pt. Nếu lỗi class ID, chỉnh if cls == 0.
+Tăng hiệu suất: Tăng RAM VM lên 4 GB (VirtualBox Settings > System > Base Memory).
+
+Lưu Ý
+
+Không dùng OpenCV cho detection: Script chỉ dùng YOLO cho inference, cv2 chỉ cho capture/display (bắt buộc cho webcam).
+Model nguồn: Từ https://github.com/Yusepp/YOLOv8-Face (pre-trained trên WIDER FACE dataset).
+Nâng cao: Để train model riêng, dùng model.train(data='path/to/dataset.yaml', epochs=100) (cần dataset).
+
+Nếu gặp lỗi cụ thể, cung cấp thông báo để hỗ trợ thêm!
