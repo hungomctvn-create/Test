@@ -1,0 +1,204 @@
+Hướng dẫn cấu hình Oracle VirtualBox và cài đặt OpenCV + YOLOv8 offline trên máy ảo Raspberry Pi OS (i386, Bullseye 2022-07-01)
+Dựa trên yêu cầu của bạn, tôi sẽ hướng dẫn từng bước chi tiết. Máy chủ (host) là Windows 11, máy ảo (VM) chạy Raspberry Pi OS phiên bản 32-bit (i386) cụ thể 2022-07-01-raspios-bullseye-i386. Vì yêu cầu offline (tải file về host rồi cài thủ công trên VM), tôi giả định host có kết nối internet để tải file ban đầu, sau đó chuyển file vào VM qua shared folder hoặc USB.
+Lưu ý quan trọng về YOLOv8:
+Phiên bản OS i386 (32-bit x86) của Raspberry Pi OS không hỗ trợ chính thức PyTorch (thư viện cốt lõi của YOLOv8/ultralytics), vì PyTorch chỉ có wheel cho 64-bit Linux (x86_64). Việc build PyTorch từ source trên 32-bit rất phức tạp, tốn thời gian (hàng giờ) và có thể thất bại do thiếu dependencies. Tôi khuyến nghị nâng cấp lên Raspberry Pi OS 64-bit (Bookworm hoặc Bullseye 64-bit) để dễ dàng hơn. Nếu bạn vẫn muốn dùng i386, tôi sẽ hướng dẫn cách export YOLOv8 sang ONNX và chạy bằng ONNX Runtime (không cần PyTorch), nhưng hiệu suất có thể kém.
+Bắt đầu thôi!
+Bước 1: Cài đặt Oracle VirtualBox trên Windows 11 (Host)
+
+Tải VirtualBox mới nhất (phiên bản 7.x) từ trang chính thức:
+
+Truy cập https://www.virtualbox.org/wiki/Downloads.
+Chọn Windows hosts > Tải file .exe (khoảng 100MB).
+Cài đặt như phần mềm thông thường (chạy file .exe, next/next).
+
+
+Tải Extension Pack (cho hỗ trợ USB/shared folder tốt hơn):
+
+Từ cùng trang trên, tải file .vbox-extpack.
+Mở VirtualBox > File > Preferences > Extensions > Add > Chọn file tải về > Install.
+
+
+Khởi động VirtualBox để kiểm tra.
+
+Bước 2: Tải ISO Raspberry Pi OS i386 (2022-07-01) trên Host
+
+Truy cập https://www.raspberrypi.com/software/operating-systems/ (hoặc archive: https://downloads.raspberrypi.org/raspios_armhf/images/raspios_armhf-2022-07-01/).
+
+Tìm Legacy (32-bit) > Chọn 2022-07-01-raspios-bullseye-i386 (Desktop version, file .img.xz khoảng 1GB).
+Tải về thư mục dễ nhớ (ví dụ: C:\RPi_Files\).
+
+
+Giải nén file .xz bằng 7-Zip (tải nếu chưa có): Kết quả là file .img (ISO-like cho VM).
+
+Lưu ý: Đây là phiên bản x86 32-bit, phù hợp chạy trên VirtualBox (không phải ARM thật).
+
+
+
+Bước 3: Tạo và cài đặt máy ảo Raspberry Pi OS trong VirtualBox
+
+Mở VirtualBox > New.
+
+Name: Raspberry Pi i386.
+Type: Linux.
+Version: Debian (32-bit).
+Next.
+
+
+Cấu hình tài nguyên (dựa trên khuyến nghị cho emulation):
+
+RAM: 1024 MB (tối thiểu 512MB, nhưng dùng 1GB để mượt).
+Processors: 1 CPU (hoặc 2 nếu host mạnh).
+Enable EFI: Không (legacy boot).
+
+
+Tạo ổ cứng ảo:
+
+Create a virtual hard disk now.
+VDI, Dynamically allocated, Size: 8 GB.
+
+
+Cấu hình VM (chọn VM > Settings):
+
+System > Motherboard: Chipset: PIIX3 (legacy).
+System > Processor: Enable PAE/NX.
+Display > Screen: Video Memory: 128MB, Enable 3D Acceleration (nếu host hỗ trợ).
+Storage: Chọn Empty (optical) > Chọn icon đĩa > Choose a disk file > Chọn file .img tải về (để boot từ ISO).
+Network > Adapter 1: Enable, NAT (để VM có IP nội bộ).
+USB: Enable USB Controller 2.0 (nếu cần USB sau).
+
+
+Shared Folder (để chuyển file offline):
+
+Devices > Shared Folders > Add shared folder.
+Folder path: Chọn thư mục trên host chứa file tải (ví dụ: C:\RPi_Files\).
+Folder name: SharedOffline.
+Auto-mount, Make permanent.
+
+
+Start VM > Boot từ ISO.
+
+Chọn Graphical Install > Theo wizard:
+
+Language: English.
+Location: United States (hoặc tùy).
+Keyboard: American English.
+Hostname: raspberrypi.
+Domain: Để trống.
+Root password: Đặt mật khẩu (ví dụ: raspberry).
+User: pi, Password: raspberry.
+Partition: Guided - use entire disk.
+Desktop: Chọn Desktop / DE (GNOME).
+Software: Chọn SSH server nếu cần remote.
+
+
+Install xong > Reboot. VM sẽ boot vào desktop (user pi).
+
+
+Trong VM, mount shared folder:
+
+Mở Terminal > sudo mkdir /mnt/shared > sudo mount -t vboxsf SharedOffline /mnt/shared.
+Để auto-mount sau: Thêm vào /etc/fstab: SharedOffline /mnt/shared vboxsf defaults 0 0.
+Bây giờ, file từ host có thể copy vào /mnt/shared và dùng trong VM.
+
+
+
+Bước 4: Cập nhật hệ thống cơ bản trong VM (Offline nếu cần)
+
+Nếu VM có net tạm (qua NAT), chạy sudo apt update && sudo apt upgrade -y trước khi offline.
+Offline: Tải deb packages cần thiết trên host từ https://packages.debian.org/bullseye/ (chọn i386), ví dụ: apt download <package> trên máy Debian khác, rồi copy deb vào /mnt/shared > Trong VM: sudo dpkg -i *.deb > sudo apt --fix-broken install.
+
+Bước 5: Cài OpenCV offline trên VM (Raspberry Pi OS Bullseye i386)
+OpenCV 4.x hoạt động tốt trên 32-bit, nhưng pip wheel có thể thiếu deps. Cách tốt nhất offline: Build từ source (tải tarball trên host). Thời gian build ~30-60 phút trên VM 1 core.
+
+Tải file trên Host (có net):
+
+OpenCV source: https://github.com/opencv/opencv/releases > Tải opencv-4.8.1.zip (hoặc mới nhất 4.x, ~50MB). Giải nén vào C:\RPi_Files\opencv_src.
+Contrib (extra modules, optional): https://github.com/opencv/opencv_contrib/releases > opencv_contrib-4.8.1.zip.
+Dependencies deb (tải từ https://packages.debian.org/bullseye/i386/, copy vào shared):
+
+build-essential, cmake, pkg-config, libgtk-3-dev, libavcodec-dev, libavformat-dev, libswscale-dev, libv4l-dev, libxvidcore-dev, libx264-dev, libjpeg-dev, libpng-dev, libtiff-dev, gfortran, openexr, libatlas-base-dev, python3-dev, python3-numpy.
+Sử dụng công cụ như apt download trên Debian mirror để lấy file .deb i386.
+
+
+
+
+Chuyển và cài deps trong VM:
+
+Copy deb vào /mnt/shared.
+Terminal: cd /mnt/shared > sudo dpkg -i *.deb > sudo apt --fix-broken install -y.
+
+
+Build OpenCV từ source:
+
+cd /mnt/shared > Giải nén opencv và contrib: unzip opencv-*.zip > unzip opencv_contrib-*.zip.
+Tạo build dir: cd opencv-4.8.1 > mkdir build > cd build.
+CMake:
+textcmake -D CMAKE_BUILD_TYPE=RELEASE \
+      -D CMAKE_INSTALL_PREFIX=/usr/local \
+      -D INSTALL_PYTHON_EXAMPLES=ON \
+      -D INSTALL_C_EXAMPLES=OFF \
+      -D OPENCV_ENABLE_NONFREE=ON \
+      -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-4.8.1/modules \
+      -D PYTHON_EXECUTABLE=$(which python3) \
+      -D BUILD_EXAMPLES=ON ..
+
+Build: make -j1 (dùng 1 core để tránh crash).
+Install: sudo make install > sudo ldconfig.
+
+
+Kiểm tra: python3 -c "import cv2; print(cv2.__version__)" > Nên in 4.8.1.
+
+Alternative đơn giản hơn (nếu wheel hoạt động): Tải wheel opencv-python từ https://pypi.org/project/opencv-python/#files > Chọn opencv_python-4.8.1.78-cp39-cp39-linux_i686.whl (Python 3.9 trên Bullseye). Copy vào VM > pip3 install /mnt/shared/*.whl (cần install numpy trước: tải wheel numpy cho i686 cp39).
+Bước 6: Cài YOLOv8 offline trên VM
+Như lưu ý, 32-bit khó với PyTorch. Khuyến nghị: Export model sang ONNX và dùng ONNX Runtime (hỗ trợ 32-bit). Điều này cho phép chạy inference mà không cần train/full PyTorch.
+
+Trên Host (có net), chuẩn bị model và libs:
+
+Tải YOLOv8 model: https://github.com/ultralytics/ultralytics > Assets > Tải yolov8n.pt (nano model, nhỏ).
+Export sang ONNX: Cần máy có net/Python > Chạy script:
+textpip install ultralytics
+from ultralytics import YOLO
+model = YOLO('yolov8n.pt')
+model.export(format='onnx')
+
+Kết quả: yolov8n.onnx (~6MB).
+
+
+Tải ONNX Runtime wheel: https://pypi.org/project/onnxruntime/#files > Chọn onnxruntime-1.16.3-cp39-cp39-linux_i686.whl (hỗ trợ 32-bit).
+Tải numpy nếu cần: numpy-1.24.3-cp39-cp39-linux_i686.whl.
+Copy tất cả vào C:\RPi_Files\yolo_offline.
+
+
+Trong VM:
+
+Copy vào /mnt/shared.
+Install: pip3 install /mnt/shared/numpy-*.whl > pip3 install /mnt/shared/onnxruntime-*.whl.
+Test inference (tạo file test_yolo.py):
+textimport onnxruntime as ort
+import numpy as np
+import cv2  # Từ bước 5
+
+# Load model
+session = ort.InferenceSession('/mnt/shared/yolov8n.onnx')
+input_name = session.get_inputs()[0].name
+
+# Load image test (copy ảnh mẫu vào shared)
+img = cv2.imread('/mnt/shared/test.jpg')
+img = cv2.resize(img, (640, 640))
+img = img.transpose(2, 0, 1).astype(np.float32) / 255.0
+img = np.expand_dims(img, 0)
+
+# Run
+outputs = session.run(None, {input_name: img})
+print("Detection outputs:", outputs[0].shape)  # Kết quả boxes, classes
+
+Chạy: python3 test_yolo.py.
+
+
+
+Nếu muốn full YOLOv8 với PyTorch:
+
+Nâng cấp OS lên 64-bit: Tải ISO mới từ raspberrypi.com (Bookworm 64-bit) > Lặp lại bước 3.
+Offline install: Tải wheels PyTorch (torch-2.0.0+cpu-cp39-cp39-linux_x86_64.whl từ https://download.pytorch.org/whl/torch/), ultralytics wheel từ PyPI > pip3 install --no-deps *.whl > Install deps thủ công (tqdm, etc.).
+
+Nếu gặp lỗi cụ thể (ví dụ: build fail), cung cấp log để tôi hỗ trợ thêm. Chúc thành công!50 web pages1.4sExpertHow can Grok help?
