@@ -3,6 +3,7 @@ Thực hiện theo thứ tự để giải quyết từng lỗi. Ưu tiên khắ
 
 Khắc phục clock skew và đồng bộ thời gian:
 
+
 Dừng NTP daemon mặc định:
 textsudo systemctl stop systemd-timesyncd
 sudo systemctl disable systemd-timesyncd
