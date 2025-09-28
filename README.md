@@ -1,14 +1,22 @@
-mount | grep /mnt/shared
-sudo mount -o remount,rw /mnt/shared
-sudo reboot
-hử biên dịch lại:
+ài đặt các thư viện phụ thuộc cần thiết:
 
-Xóa thư mục build hiện tại để bắt đầu lại:
-textrm -rf /mnt/shared/opencv-4.8.1/build
+Cập nhật danh sách gói và cài đặt các thư viện liên quan đến JPEG, PNG, và các codec khác:
+text
+sudo apt update
+sudo apt install libjpeg-dev libpng-dev libtiff-dev libwebp-dev
+
+Các gói này cung cấp các header và thư viện cần thiết để hỗ trợ các định dạng hình ảnh trong OpenCV.
+
+
+Xóa và tái cấu hình với CMake:
+
+Xóa thư mục build hiện tại để tránh xung đột:
+text
+rm -rf /mnt/shared/opencv-4.8.1/build
 mkdir /mnt/shared/opencv-4.8.1/build
 cd /mnt/shared/opencv-4.8.1/build
 
-Chạy lại lệnh cmake:
+Chạy lại cmake với các tham số đã dùng trước, đảm bảo chỉ định thư mục nguồn:
 textcmake -D CMAKE_BUILD_TYPE=RELEASE \
 -D CMAKE_INSTALL_PREFIX=/usr/local \
 -D INSTALL_PYTHON_EXAMPLES=on \
@@ -16,42 +24,16 @@ textcmake -D CMAKE_BUILD_TYPE=RELEASE \
 -D OPENCV_ENABLE_NONFREE=on \
 -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.1/modules \
 -D PYTHON_EXECUTABLE=$(which python3) \
--D BUILD_EXAMPLES=on
+-D BUILD_EXAMPLES=on \
+-D CMAKE_CXX_FLAGS="-std=c++11" ..
 
-Biên dịch lại:
+Đảm bảo không có lỗi trong quá trình cấu hình.
+
+
+Chạy lại quá trình biên dịch:
+
+Biên dịch với số job phù hợp:
 textmake -j4
 
-
-
-Kiểm tra thư mục đích /usr/local/lib:
-
-Kiểm tra quyền:
-textls -ld /usr/local/lib
-
-Cấp quyền nếu cần:
-textsudo chmod -R 775 /usr/local/lib
-sudo chown -R $USER:$USER /usr/local/lib
-
-
-
-Thử biên dịch ngoài /mnt/shared:
-
-Nếu lỗi vẫn xảy ra do hạn chế của Shared Folder, sao chép dự án ra ngoài:
-textcp -r /mnt/shared/opencv-4.8.1 /home/$USER/
-cd /home/$USER/opencv-4.8.1/build
-cmake -D CMAKE_BUILD_TYPE=RELEASE \
--D CMAKE_INSTALL_PREFIX=/usr/local \
--D INSTALL_PYTHON_EXAMPLES=on \
--D INSTALL_C_EXAMPLES=off \
--D OPENCV_ENABLE_NONFREE=on \
--D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.1/modules \
--D PYTHON_EXECUTABLE=$(which python3) \
--D BUILD_EXAMPLES=on
-make -j4
-
-
-
-Xác nhận kết quả:
-
-Sau khi biên dịch thành công, kiểm tra file:
-textls -l /usr/local/lib/libopencv_core.so*
+Nếu lỗi vẫn xảy ra, giảm số job để tránh quá tải tài nguyên:
+textmake -j2re.so*
