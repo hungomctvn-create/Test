@@ -306,27 +306,6 @@ Debian 12 64-bit: Cài trực tiếp YOLOv8 với PyTorch, OpenCV qua wheel, đ�
 Nếu cần file .deb/wheel cụ thể hoặc gặp lỗi, cung cấp chi tiết để tôi hướng dẫn thêm!
 
 
-Chúc bạn thành công!2.2sFastHow can Grok help?
---------------------------
-Khắc phục lỗi Cmake
-Xóa thư mục build hiện tại để bắt đầu lại:
-textrm -rf /mnt/shared/opencv-4.8.1/build
-mkdir /mnt/shared/opencv-4.8.1/build
-cd /mnt/shared/opencv-4.8.1/build
-
-Chạy lại cmake với cờ hỗ trợ C++11:
-textcmake -D CMAKE_BUILD_TYPE=RELEASE \
--D CMAKE_INSTALL_PREFIX=/usr/local \
--D INSTALL_PYTHON_EXAMPLES=on \
--D INSTALL_C_EXAMPLES=off \
--D OPENCV_ENABLE_NONFREE=on \
--D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.1/modules \
--D PYTHON_EXECUTABLE=$(which python3) \
--D BUILD_EXAMPLES=on \
--D CMAKE_CXX_FLAGS="-std=c++11"
-
-Lưu ý: Thêm -D CMAKE_CXX_FLAGS="-std=c++11" để đảm bảo trình biên dịch sử dụng chuẩn C++11.
-
 
 Kiểm tra phiên bản GCC:
 
@@ -371,3 +350,4 @@ Thời gian hiện tại: 02:03 PM +07, ngày 28/09/2025. Đảm bảo máy ảo
 Dung lượng: Kiểm tra không gian lưu trữ:
 textdf -h
 Đảm bảo còn đủ dung lượng (OpenCV cần vài trăm MB).
+
