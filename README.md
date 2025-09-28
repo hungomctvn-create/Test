@@ -24,8 +24,8 @@ textcmake -D CMAKE_BUILD_TYPE=RELEASE \
 -D OPENCV_ENABLE_NONFREE=on \
 -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.1/modules \
 -D PYTHON_EXECUTABLE=$(which python3) \
--D BUILD_EXAMPLES=on \
--D CMAKE_CXX_FLAGS="-std=c++11" ..
+-D BUILD_EXAMPLES=on ..
+
 
 Đảm bảo không có lỗi trong quá trình cấu hình.
 
