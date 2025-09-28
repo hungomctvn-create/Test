@@ -1,3 +1,6 @@
+cp /home/debian/Downloads/* /root/Desktop/
+
+
 Tương thích của Debian 13.1.0 amd64 với Oracle VirtualBox
 Có, Debian 13.1.0 amd64 (64-bit) hoàn toàn tương thích với Oracle VirtualBox (phiên bản 6.1 LTS hoặc 7.0+ mới nhất). Debian 13 (tên mã "Trixie") là bản phân phối Linux ổn định dựa trên kernel 6.8+, hỗ trợ tốt x86_64 (amd64), và VirtualBox đã được kiểm chứng hoạt động mượt mà trên các phiên bản Debian mới nhất, bao gồm Trixie. Dưới đây là phân tích chi tiết dựa trên tài liệu chính thức và cộng đồng (từ Oracle, Debian Wiki, và các hướng dẫn cập nhật năm 2025).
 Lý do tương thích
