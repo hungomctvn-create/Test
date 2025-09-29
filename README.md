@@ -1,15 +1,15 @@
-##  LỆNH KHẮC PHỤC NHANH:
+### Chạy script khắc phục trên Raspberry Pi
 ```
-# Chạy tất cả lệnh này để khắc phục:
-sudo apt update && \
-sudo apt install -y v4l2loopback-dkms 
-v4l-utils && \
-sudo modprobe v4l2loopback devices=1 
-video_nr=0 && \
-ls -la /dev/video* && \
-echo "✅ Camera setup completed!"
+# SSH vào Raspberry Pi
+chmod +x fix_opencv_complete.sh
+./fix_opencv_complete.sh
+```
+### Bước 3: Test hệ thống
+```
+# Test OpenCV và camera
+python3 test_opencv_camera.py
 
-# Test với Python
-python3 test_camera_simple.py
+# Nếu OK, chạy chương trình chính
+python3 Nhan_dang_nguoi_yolo.py
 ```
-## 💡 KẾT QUẢ MONG ĐỢI:
+## 💡 TÍNH NĂNG MỚI:
