@@ -7,6 +7,20 @@ import os
 import threading
 import urllib.request
 
+# Kiểm tra và cấu hình OpenCV
+try:
+    # Test GUI support
+    cv2.namedWindow("test", cv2.WINDOW_NORMAL)
+    cv2.destroyWindow("test")
+    GUI_AVAILABLE = True
+except:
+    GUI_AVAILABLE = False
+    print("⚠️  GUI không khả dụng, chạy ở chế độ headless")
+
+# Cấu hình OpenCV cho Raspberry Pi
+os.environ['QT_QPA_PLATFORM'] = 'xcb'
+os.environ['DISPLAY'] = ':0'
+
 # Biến toàn cục để theo dõi trạng thái
 is_speaking = False
 face_detected = False
@@ -269,18 +283,33 @@ def main():
         # Vẽ thông tin trạng thái
         draw_status(frame, current_fps)
         
-        # Hiển thị khung hình
-        cv2.imshow('Nhận dạng người - YOLO', frame)
-        
-        # Kiểm tra phím bấm
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            program_running = False
-            break
+        # Hiển thị khung hình với GUI fallback
+        if GUI_AVAILABLE:
+            try:
+                cv2.imshow('Nhận dạng người - YOLO', frame)
+                
+                # Kiểm tra phím bấm
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    program_running = False
+                    break
+            except Exception as e:
+                print(f"⚠️  GUI Error: {e}")
+                print("Chuyển sang chế độ headless...")
+                GUI_AVAILABLE = False
+        else:
+            # Chế độ headless - chỉ in thông tin
+            if people_boxes:
+                print(f"🎯 Phát hiện {len(people_boxes)} người - FPS: {current_fps:.1f}")
+            
+            # Kiểm tra điều kiện dừng cho headless mode
+            if fps_counter % 100 == 0:  # Print every 100 frames
+                print(f"📊 Running... FPS: {current_fps:.1f} (Ctrl+C để dừng)")
     
     # Dọn dẹp
     cap.release()
-    cv2.destroyAllWindows()
+    if GUI_AVAILABLE:
+        cv2.destroyAllWindows()
     print("Chương trình đã kết thúc.")
 
 if __name__ == "__main__":
