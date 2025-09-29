@@ -136,9 +136,13 @@ sudo apt install python3-pip python3-venv build-essential -y
 Offline:
 
 Trên host (có mạng), tải các gói .deb từ packages.debian.org (hoặc bookworm/amd64 nếu dùng 64-bit):
-bashapt download python3-pip python3-venv build-essential
+bash
+Sudo apt download python3-pip python3-venv build-essential
 
 Copy file .deb vào C:\RPi_Files.
+Chạy phân quyền :
+sudo chmod -R 775 /mnt/shared
+ sudo chown -R $pi:$pi /mnt/shared
 Trong VM:
 bashcd /mnt/shared
 sudo dpkg -i *.deb
@@ -172,9 +176,13 @@ sudo apt --fix-broken install -y
 Build OpenCV:
 bashcd /mnt/shared
 unzip opencv-4.8.1.zip
-unzip opencv_contrib-4.8.1.zip
+unzip opencv_contrib-4.8.1.zip (tar -xzf /mnt/shared/opencv_contrib-4.8.1.tar.gz, Nếu file .tar.gz)
 cd opencv-4.8.1
 mkdir build && cd build
+
+sudo apt update
+sudo apt install cmake
+
 cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D CMAKE_INSTALL_PREFIX=/usr/local \
       -D INSTALL_PYTHON_EXAMPLES=ON \
@@ -183,6 +191,15 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-4.8.1/modules \
       -D PYTHON_EXECUTABLE=$(which python3) \
       -D BUILD_EXAMPLES=ON ..
+-----------------
+Xem các file vào thư mục Build chưa:
+ls -l /mnt/shared/opencv-4.8.1/build
+Nếu lỗi thoát - xóa build:
+rm -rf /mnt/shared/opencv-4.8.1/build
+mkdir /mnt/shared/opencv-4.8.1/build
+cd /mnt/shared/opencv-4.8.1/build
+Sau đó thực hiện lại bước cmake
+-----------------
 make -j1  # Dùng 1 core để tránh crash
 sudo make install
 sudo ldconfig
@@ -305,6 +322,16 @@ Raspberry Pi OS Bullseye i386: Dùng ONNX Runtime cho YOLOv8, build OpenCV từ 
 Debian 12 64-bit: Cài trực tiếp YOLOv8 với PyTorch, OpenCV qua wheel, đơn giản và hiệu quả hơn.
 Nếu cần file .deb/wheel cụ thể hoặc gặp lỗi, cung cấp chi tiết để tôi hướng dẫn thêm!
 
+Chúc bạn thành công!2.2sFastHow can Grok help?
+------------------------------
+Khắc phục lỗi cmake
+Xóa thư mục build hiện tại để bắt đầu lại:
+text
+rm -rf /mnt/shared/opencv-4.8.1/build
+mkdir /mnt/shared/opencv-4.8.1/build
+cd /mnt/shared/opencv-4.8.1/build
+
+
 
 
 Kiểm tra phiên bản GCC:
@@ -350,4 +377,4 @@ Thời gian hiện tại: 02:03 PM +07, ngày 28/09/2025. Đảm bảo máy ảo
 Dung lượng: Kiểm tra không gian lưu trữ:
 textdf -h
 Đảm bảo còn đủ dung lượng (OpenCV cần vài trăm MB).
-
+Dồng bộ giờ: sudo timedatectl set-time "2025-09-28 15:38:00"
