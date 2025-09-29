@@ -116,6 +116,38 @@ sudo apt install firmware-misc-nonfree -y
 lsusb | grep -i camera
 
 # Nếu có camera, thử khởi động lại
+
+
+### Bước 3: Kiểm tra camera ngay
+```
+# Kiểm tra USB devices
+/usr/bin/lsusb
+
+# Tìm thiết bị video
+/bin/ls -la /dev/video* 2>/dev/null || echo 
+"Không có thiết bị video"
+
+# Kiểm tra kernel messages
+/bin/dmesg | /bin/grep -i usb | /usr/bin/
+tail -10
+```
+### Bước 4: Cài đặt driver camera
+```
+# Cài đặt v4l-utils
+sudo /usr/bin/apt install v4l-utils -y
+
+# Cài đặt camera tools
+sudo /usr/bin/apt install fswebcam guvcview 
+-y
+```
+## 🎯 LỆNH NHANH:
+```
+# Chạy tất cả trong một lệnh
+sudo /usr/bin/apt update && sudo /usr/bin/
+apt install -y v4l-utils fswebcam && /usr/
+bin/lsusb && /bin/ls -la /dev/video*
+```
+## 💡 QUAN TRỌNG:
 sudo reboot
 
 # Sau khi khởi động lại, kiểm tra
