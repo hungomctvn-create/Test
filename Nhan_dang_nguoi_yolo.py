@@ -123,7 +123,7 @@ def check_camera_devices():
             cap.release()
     return available_cameras
 
-def initialize_camera(camera_id=1):
+def initialize_camera(camera_id=0):  # Thay đổi từ 1 thành 0
     """Khởi tạo camera với ID cụ thể"""
     cap = cv2.VideoCapture(camera_id)
     if not cap.isOpened():
@@ -134,6 +134,11 @@ def initialize_camera(camera_id=1):
             cap = cv2.VideoCapture(available_cameras[0])
         else:
             print("Lỗi: Không tìm thấy camera nào. Kiểm tra kết nối USB hoặc driver.")
+            print("💡 HƯỚNG DẪN KHẮC PHỤC:")
+            print("1. Kiểm tra USB camera đã cắm chưa: lsusb | grep -i camera")
+            print("2. Cài đặt v4l2loopback: sudo apt install v4l2loopback-dkms")
+            print("3. Tạo virtual camera: sudo modprobe v4l2loopback devices=1")
+            print("4. Kiểm tra devices: ls -la /dev/video*")
             return None
     
     # Đặt độ phân giải (tùy chọn, giảm tải cho RPi)
