@@ -1,11 +1,34 @@
-# SSH vào Raspberry Pi và chạy lệnh này:
-curl -sSL https://raw.githubusercontent.com/user/repo/main/quick_fix.sh | bash
+### Bước 1: Kiểm tra kết nối USB camera
+```
+# Kiểm tra thiết bị USB
+lsusb
 
-# HOẶC copy-paste script này:
-pip3 uninstall numpy -y
-sudo apt update && sudo apt install python3-numpy python3-opencv -y
-pip3 install --user pygame==2.1.0 gtts==2.2.4 pyttsx3==2.90
-python3 -c "import cv2, numpy; print('✓ Đã khắc phục!')"
+# Tìm camera USB
+lsusb | grep -i camera
+lsusb | grep -i video
+```
+### Bước 2: Cắm lại camera và kiểm tra
+```
+# Sau khi cắm lại camera USB
+dmesg | tail -20
 
-# Từ máy tính Windows:
-.\upload_to_raspberry_pi.ps1 -RaspberryPiIP "192.168.1.100" -Username "pi"
+# Kiểm tra lại thiết bị video
+ls -la /dev/video*
+```
+### Bước 3: Tải driver camera
+```
+# Tải driver UVC (USB Video Class)
+sudo modprobe uvcvideo
+
+# Kiểm tra driver đã tải
+lsmod | grep uvc
+```
+### Bước 4: Test camera sau khi cắm
+```
+# Chạy script test camera
+python3 test_camera_simple.py
+
+# Hoặc test thủ công
+v4l2-ctl --list-devices
+```
+## 💡 GỢI Ý:
