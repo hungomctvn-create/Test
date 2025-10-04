@@ -1,8 +1,7 @@
-sudo apt install -y \
-    libatlas-base-dev \
-    libhdf5-dev \
-    libhdf5-serial-dev \
-    libatlas-base-dev \
-    libjasper-dev \
-    libqtgui4 \
-    libqt4-test
+- Thêm kho backports, rồi cập nhật:
+- echo 'deb http://deb.debian.org/debian bullseye-backports main' | sudo tee /etc/apt/sources.list.d/bullseye-backports.list
+- sudo apt update
+- Cài Python 3.11 từ backports:
+- sudo apt -t bullseye-backports install python3.11 python3.11-venv python3.11-dev
+- Kiểm tra:
+- python3.11 --version
