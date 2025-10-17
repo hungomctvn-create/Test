@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 GUI chụp ảnh với Raspberry Pi Camera Module 3 (Picamera2)
-- Preview màu trung thực (sRGB, RGB888) khớp với ảnh chụp lưu.
+- Preview màu trung thực (ưu tiên sRGB + RGB888 nếu khả dụng).
 - Nút "Chụp ảnh" lưu ảnh vào /home/hungomctvn (tạo thư mục nếu thiếu).
+- Tương thích với các phiên bản Picamera2/libcamera khác nhau (fallback tự động).
 
 Yêu cầu trên Raspberry Pi:
-- sudo apt update && sudo apt install -y python3-picamera2 python3-pil python3-pil.imagetk
-- Kiểm tra camera: rpicam-hello -t 2000
+- sudo apt update && sudo apt install -y python3-picamera2 python3-pil python3-pil.imagetk libcamera libcamera-apps
+- Kiểm tra camera: libcamera-hello -t 2000
 
 Chạy:
 - python3 gui_chup_anh_4.py
@@ -23,11 +24,23 @@ except Exception:
     print("[LỖI] Thiếu Pillow. Cài đặt: sudo apt install -y python3-pil python3-pil.imagetk")
     sys.exit(1)
 
+# Picamera2 & ColorSpace (fallback nếu ColorSpace không khả dụng)
 try:
     from picamera2 import Picamera2, ColorSpace
+    _HAS_COLORSPACE = True
+except Exception:
+    try:
+        from picamera2 import Picamera2
+        _HAS_COLORSPACE = False
+    except Exception:
+        print("[LỖI] Thiếu Picamera2. Cài đặt: sudo apt install -y python3-picamera2")
+        sys.exit(1)
+
+# controls từ libcamera (AF/AWB/AE)
+try:
     from libcamera import controls
 except Exception:
-    print("[LỖI] Thiếu Picamera2/libcamera. Cài đặt: sudo apt install -y python3-picamera2")
+    print("[LỖI] Thiếu libcamera. Cài đặt: sudo apt install -y libcamera libcamera-apps")
     sys.exit(1)
 
 
@@ -58,11 +71,31 @@ class CameraGUI:
         # Khởi tạo camera
         self.picam2 = Picamera2()
 
-        # Preview: luồng main RGB888 với sRGB để màu hiển thị trung thực
-        self.preview_config = self.picam2.create_preview_configuration(
-            main={"size": (self.preview_width, self.preview_height), "format": "RGB888"},
-            colour_space=ColorSpace.Srgb,
-        )
+        # Preview: ưu tiên luồng 'main' sRGB + RGB888; fallback 'lores' nếu cần
+        self.preview_stream = "main"
+        try:
+            if _HAS_COLORSPACE:
+                self.preview_config = self.picam2.create_preview_configuration(
+                    main={"size": (self.preview_width, self.preview_height), "format": "RGB888"},
+                    colour_space=ColorSpace.Srgb,
+                )
+            else:
+                self.preview_config = self.picam2.create_preview_configuration(
+                    main={"size": (self.preview_width, self.preview_height), "format": "RGB888"},
+                )
+        except Exception:
+            # Fallback: dùng lores nếu main không hỗ trợ trên môi trường hiện tại
+            try:
+                self.preview_config = self.picam2.create_preview_configuration(
+                    lores={"size": (640, 480), "format": "RGB888"},
+                )
+                self.preview_stream = "lores"
+            except Exception:
+                # Fallback cuối: main không đặt colour_space/format
+                self.preview_config = self.picam2.create_preview_configuration(
+                    main={"size": (640, 480)},
+                )
+                self.preview_stream = "main"
         self.picam2.configure(self.preview_config)
 
         # AF/AWB mặc định trong chế độ preview
@@ -86,7 +119,7 @@ class CameraGUI:
     def update_preview(self):
         # Lấy khung hình hiện tại từ luồng 'main' và vẽ lên Tkinter
         try:
-            frame = self.picam2.capture_array("main")
+            frame = self.picam2.capture_array(self.preview_stream)
         except Exception as e:
             self.status_var.set(f"[LỖI] {e}")
             self.root.after(200, self.update_preview)
@@ -142,11 +175,21 @@ class CameraGUI:
         except Exception:
             pass
 
-        # Cấu hình chụp độ phân giải cao (12MP) với sRGB
-        still_config = self.picam2.create_still_configuration(
-            main={"size": (4608, 3456)},
-            colour_space=ColorSpace.Srgb,
-        )
+        # Cấu hình chụp độ phân giải cao (12MP) ưu tiên sRGB; fallback nếu không hỗ trợ
+        try:
+            if _HAS_COLORSPACE:
+                still_config = self.picam2.create_still_configuration(
+                    main={"size": (4608, 3456)},
+                    colour_space=ColorSpace.Srgb,
+                )
+            else:
+                still_config = self.picam2.create_still_configuration(
+                    main={"size": (4608, 3456)},
+                )
+        except Exception:
+            still_config = self.picam2.create_still_configuration(
+                main={"size": (4608, 3456)},
+            )
 
         # Thực hiện chụp
         self.status_var.set("Đang chụp...")
