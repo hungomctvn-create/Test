@@ -98,8 +98,8 @@ def parse_args() -> argparse.Namespace:
         description="Bọc lệnh rpicam-still -t 0 cho Raspberry Pi 5 + Camera V3"
     )
     parser.add_argument(
-        "-o", "--output", default="v3.jpg",
-        help="Đường dẫn file ảnh đầu ra (mặc định: v3.jpg)"
+        "-o", "--output", default="/home/hungomctvn/v3.jpg",
+        help="Đường dẫn file ảnh đầu ra (mặc định: /home/hungomctvn/v3.jpg)"
     )
     parser.add_argument(
         "--timestamp", action="store_true",
@@ -145,12 +145,55 @@ def parse_args() -> argparse.Namespace:
         "--verbose", action="store_true",
         help="In log chi tiết từ rpicam-still"
     )
+    parser.add_argument(
+        "--enter", action="store_true",
+        help="Chụp khi nhấn Enter (lặp lại cho đến khi thoát)"
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     rpicam_exe = ensure_rpicam_available()
+
+    # Nếu bật chế độ chụp khi nhấn Enter (loop tương tác)
+    if args.enter:
+        # Tạo thư mục nếu chưa có
+        out_dir = os.path.dirname(args.output)
+        if out_dir and not os.path.exists(out_dir):
+            os.makedirs(out_dir, exist_ok=True)
+    
+        print("=== Chế độ Enter-to-chụp ===")
+        print("Nhấn Enter để chụp; gõ 'q' rồi Enter để thoát.")
+        try:
+            while True:
+                user_input = input()
+                if user_input.strip().lower() in ("q", "quit", "exit"):
+                    print("[Thoát] Đã dừng chế độ Enter-to-chụp.")
+                    break
+    
+                # Luôn thêm timestamp để tránh ghi đè
+                out_path_iter = timestamped_path(args.output)
+    
+                # Sử dụng no-preview và timeout ngắn nếu chưa đặt
+                local_args = argparse.Namespace(**vars(args))
+                local_args.no_preview = True
+                local_args.timeout = args.timeout if args.timeout > 0 else 200
+    
+                cmd = build_command(local_args, rpicam_exe, out_path_iter)
+                print("Lệnh:", " ".join(cmd))
+                try:
+                    subprocess.run(cmd, check=True)
+                    if os.path.exists(out_path_iter):
+                        print(f"[OK] Đã lưu ảnh: {out_path_iter}")
+                    else:
+                        print("[CẢNH BÁO] Lệnh chạy xong nhưng không thấy file đầu ra.")
+                except subprocess.CalledProcessError as e:
+                    print("[LỖI] rpicam-still trả về lỗi:", e)
+                    # tiếp tục vòng lặp
+        except KeyboardInterrupt:
+            print("[ĐÃ HỦY] Bạn đã hủy thao tác (Ctrl+C).")
+        sys.exit(0)
 
     # Xử lý đường dẫn đầu ra và timestamp nếu yêu cầu
     out_path = args.output
