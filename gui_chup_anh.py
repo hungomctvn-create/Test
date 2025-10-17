@@ -57,9 +57,10 @@ class CameraGUI:
 
         # Khởi tạo camera
         self.picam2 = Picamera2()
-        # Cấu hình preview nhỏ để hiển thị mượt
+        # Cấu hình preview: dùng luồng lores RGB888 để hiển thị ổn định
         self.preview_config = self.picam2.create_preview_configuration(
-            main={"size": (self.preview_width, self.preview_height)}
+            main={"size": (1280, 720)},
+            lores={"size": (self.preview_width, self.preview_height), "format": "RGB888"}
         )
         self.picam2.configure(self.preview_config)
 
@@ -81,7 +82,7 @@ class CameraGUI:
     def update_preview(self):
         # Lấy khung hình hiện tại từ camera và vẽ lên Tkinter
         try:
-            frame = self.picam2.capture_array()
+            frame = self.picam2.capture_array("lores")
         except Exception as e:
             self.status_var.set(f"[LỖI] {e}")
             self.root.after(200, self.update_preview)
