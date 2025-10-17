@@ -16,6 +16,7 @@ import os
 import sys
 import tkinter as tk
 from datetime import datetime
+from PIL import Image, ImageTk, ImageEnhance
 
 try:
     from PIL import Image, ImageTk
@@ -25,7 +26,7 @@ except Exception:
 
 try:
     from picamera2 import Picamera2
-    from libcamera import controls
+    from libcamera import controls, ColorSpace
 except Exception:
     print("[LỖI] Thiếu Picamera2/libcamera. Cài đặt: sudo apt install -y python3-picamera2")
     sys.exit(1)
@@ -57,10 +58,15 @@ class CameraGUI:
 
         # Khởi tạo camera
         self.picam2 = Picamera2()
-        # Cấu hình preview: dùng luồng lores RGB888 để hiển thị ổn định
+        # Tăng cường preview cho trung thực hơn (mô phỏng ISP)
+        self.preview_enhance = True
+        self.preview_sharpness = 1.15
+        self.preview_contrast = 1.05
+        self.preview_saturation = 1.08
+        # Cấu hình preview: dùng luồng main RGB888 với sRGB, khớp hơn với ảnh chụp
         self.preview_config = self.picam2.create_preview_configuration(
-            main={"size": (1280, 720)},
-            lores={"size": (self.preview_width, self.preview_height), "format": "RGB888"}
+            main={"size": (self.preview_width, self.preview_height), "format": "RGB888"},
+            colour_space=ColorSpace.Srgb
         )
         self.picam2.configure(self.preview_config)
 
@@ -92,7 +98,7 @@ class CameraGUI:
     def update_preview(self):
         # Lấy khung hình hiện tại từ camera và vẽ lên Tkinter
         try:
-            frame = self.picam2.capture_array("lores")
+            frame = self.picam2.capture_array("main")
         except Exception as e:
             self.status_var.set(f"[LỖI] {e}")
             self.root.after(200, self.update_preview)
