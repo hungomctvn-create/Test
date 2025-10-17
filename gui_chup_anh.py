@@ -66,11 +66,21 @@ class CameraGUI:
 
         # Lấy nét liên tục (Camera V3)
         try:
-            self.picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous})
+            self.picam2.set_controls({
+                "AfMode": controls.AfModeEnum.Continuous,
+                "AfSpeed": controls.AfSpeedEnum.Fast,
+            })
         except Exception:
             # Bỏ qua nếu không hỗ trợ
             pass
-
+        try:
+            self.picam2.set_controls({"AwbMode": controls.AwbModeEnum.Auto})
+        except Exception:
+            pass
+        try:
+            self.picam2.set_controls({"Saturation": 1.1, "Contrast": 1.05, "Sharpness": 1.2})
+        except Exception:
+            pass
         self.picam2.start()
 
         # Bắt đầu vòng lặp cập nhật preview
@@ -103,10 +113,32 @@ class CameraGUI:
         # Tạo tên file với timestamp
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = os.path.join(self.save_dir, f"IMG_{ts}.jpg")
-
+    
+        # Khóa nét trước khi chụp để tăng độ sắc nét và màu chính xác
+        self.status_var.set("Đang lấy nét...")
+        try:
+            self.picam2.set_controls({
+                "AfMode": controls.AfModeEnum.Auto,
+                "AfSpeed": controls.AfSpeedEnum.Fast,
+            })
+            try:
+                self.picam2.set_controls({"AfTrigger": controls.AfTrigger.Start})
+            except Exception:
+                pass
+            import time as _time
+            t0 = _time.time()
+            while _time.time() - t0 < 2.0:
+                md = self.picam2.capture_metadata()
+                st = md.get("AfState")
+                if st == controls.AfStateEnum.Focused:
+                    break
+                _time.sleep(0.05)
+        except Exception:
+            pass
+    
         # Tạo cấu hình chụp độ phân giải cao (12MP Camera V3)
         still_config = self.picam2.create_still_configuration(main={"size": (4608, 3456)})
-
+    
         # Thực hiện chuyển cấu hình và chụp
         self.status_var.set("Đang chụp...")
         try:
@@ -115,9 +147,10 @@ class CameraGUI:
         except Exception as e:
             self.status_var.set(f"[LỖI] {e}")
         finally:
-            # Trở về cấu hình preview
+            # Trở về cấu hình preview và AF liên tục
             try:
                 self.picam2.configure(self.preview_config)
+                self.picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous})
                 self.picam2.start()
             except Exception:
                 pass
