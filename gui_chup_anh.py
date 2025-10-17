@@ -25,8 +25,8 @@ except Exception:
     sys.exit(1)
 
 try:
-    from picamera2 import Picamera2
-    from libcamera import controls, ColorSpace
+    from picamera2 import Picamera2, ColorSpace
+    from libcamera import controls
 except Exception:
     print("[LỖI] Thiếu Picamera2/libcamera. Cài đặt: sudo apt install -y python3-picamera2")
     sys.exit(1)
