@@ -8,7 +8,7 @@ def main():
     except Exception as e:
         raise RuntimeError("Picamera2 không khả dụng. Hãy cài đặt python3-picamera2 qua apt trên Raspberry Pi.") from e
 
-    outdir = os.environ.get("DATASET_DIR", "/home/pi/dataset/images/train")
+    outdir = os.environ.get("DATASET_DIR", "/home/hungomctvn/dataset/images/train")
     count = int(os.environ.get("COUNT", "100"))
     os.makedirs(outdir, exist_ok=True)
 
