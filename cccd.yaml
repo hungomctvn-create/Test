@@ -1,0 +1,4 @@
+train: /home/pi/dataset/images/train
+val: /home/pi/dataset/images/val
+nc: 1
+names: ['cccd']
