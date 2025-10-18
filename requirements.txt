@@ -1,0 +1,14 @@
+# Phụ thuộc cho chạy thử trên PC/Windows (webcam) hoặc hỗ trợ trên Pi
+# Lưu ý: Trên Raspberry Pi, ưu tiên cài đặt:
+#  - torch/torchvision/torchaudio qua chỉ mục CPU của PyTorch
+#  - python3-picamera2 qua apt (không nên cài qua pip)
+
+# YOLOv5 (gói Python)
+yolov5
+
+# OpenCV (PC/Windows; trên Pi đã có python3-opencv từ apt)
+opencv-python
+
+# Phụ trợ thường dùng
+numpy
+Pillow
