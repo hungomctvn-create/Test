@@ -13,12 +13,17 @@ try:
 except Exception:
     controls = None
 
-# Fallback integer values if libcamera.controls is unavailable
-AF_MODE_MANUAL = controls.AfModeEnum.Manual if controls else 0
-AF_MODE_AUTO = controls.AfModeEnum.Auto if controls else 1
-AF_MODE_CONTINUOUS = controls.AfModeEnum.Continuous if controls else 2
-AF_TRIGGER_START = controls.AfTrigger.Start if controls else 0
-AF_TRIGGER_CANCEL = controls.AfTrigger.Cancel if controls else 1
+# Robust AF enums across libcamera versions (AfTrigger uses AfTriggerEnum)
+AF_MODE_MANUAL = getattr(getattr(controls, "AfModeEnum", None), "Manual", 0) if controls else 0
+AF_MODE_AUTO = getattr(getattr(controls, "AfModeEnum", None), "Auto", 1) if controls else 1
+AF_MODE_CONTINUOUS = getattr(getattr(controls, "AfModeEnum", None), "Continuous", 2) if controls else 2
+
+if controls and hasattr(controls, "AfTriggerEnum"):
+    AF_TRIGGER_START = controls.AfTriggerEnum.Start
+    AF_TRIGGER_CANCEL = controls.AfTriggerEnum.Cancel
+else:
+    AF_TRIGGER_START = 0
+    AF_TRIGGER_CANCEL = 1
 
 AF_STATE_MAP = {
     0: "Idle",
