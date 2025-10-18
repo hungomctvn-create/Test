@@ -61,9 +61,9 @@ class DocumentScannerApp:
         # Set AF to Continuous mode by default
         self.set_controls_safe({"AfMode": AF_MODE_CONTINUOUS})
 
-        # ROI scale (percentage of frame size). Adjust if needed.
-        self.roi_scale_w = 0.8
-        self.roi_scale_h = 0.8
+        # ID card ratio (ISO ID-1 85.60 x 53.98 mm) and scale
+        self.card_ratio = 85.60 / 53.98  # width / height
+        self.roi_scale = 0.95
 
         # Start live updating the preview
         self.update_preview()
@@ -98,10 +98,13 @@ class DocumentScannerApp:
             pass
 
     def compute_roi_rect(self, w, h):
-        rw = int(max(1, min(w, w * self.roi_scale_w)))
-        rh = int(max(1, min(h, h * self.roi_scale_h)))
-        x1 = (w - rw) // 2
-        y1 = (h - rh) // 2
+        # Compute centered ROI with ID-1 card aspect ratio
+        r = self.card_ratio  # width / height
+        # Pick width so that both width and height fit inside frame with scale
+        rw = int(min(w * self.roi_scale, h * self.roi_scale * r))
+        rh = int(rw / r)
+        x1 = max(0, (w - rw) // 2)
+        y1 = max(0, (h - rh) // 2)
         x2 = x1 + rw
         y2 = y1 + rh
         return (x1, y1, x2, y2)
